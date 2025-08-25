@@ -1,5 +1,10 @@
 import { Camera } from './camera';
 import { Tile, tileColor } from './tile';
+import {
+  BuildingManager,
+  BUILDING_DEFINITIONS,
+  BuildingState,
+} from '../buildings';
 
 /**
  * Minimal game logic used for unit testing. It keeps a small tile map and a
@@ -8,6 +13,7 @@ import { Tile, tileColor } from './tile';
 export class Game {
   public readonly camera = new Camera();
   public readonly map: Tile[][];
+  public readonly buildings: BuildingManager;
 
   /** size of a tile in pixels */
   public readonly tileSize: number;
@@ -20,6 +26,7 @@ export class Game {
     this.map = Array.from({ length: height }, () =>
       Array(width).fill(Tile.Grass)
     );
+    this.buildings = new BuildingManager(this.map);
   }
 
   private readonly ctx: CanvasRenderingContext2D;
@@ -36,6 +43,13 @@ export class Game {
 
     this.map[ty][tx] =
       this.map[ty][tx] === Tile.Grass ? Tile.Water : Tile.Grass;
+  }
+
+  /** Attempt to place a building at the given tile coordinates. */
+  placeBuilding(type: string, x: number, y: number): boolean {
+    const def = BUILDING_DEFINITIONS[type];
+    if (!def) return false;
+    return this.buildings.place(def, x, y) !== null;
   }
 
   /** Begin panning the camera. */
@@ -85,6 +99,21 @@ export class Game {
         ctx.strokeStyle = 'rgba(0,0,0,0.2)';
         ctx.strokeRect(px, py, this.tileSize, this.tileSize);
       }
+    }
+
+    // draw buildings
+    for (const b of this.buildings.buildings) {
+      const px = b.x * this.tileSize;
+      const py = b.y * this.tileSize;
+      const w = b.def.footprint.width * this.tileSize;
+      const h = b.def.footprint.height * this.tileSize;
+      if (b.state === BuildingState.Active) {
+        ctx.fillStyle = 'gray';
+      } else {
+        const phase = (b.animationFrame + 1) / b.def.constructionTime;
+        ctx.fillStyle = `rgba(128,128,128,${phase})`;
+      }
+      ctx.fillRect(px, py, w, h);
     }
 
     ctx.restore();
