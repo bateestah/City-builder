@@ -16,4 +16,9 @@ body {
 canvas {
     display: block;
     background: #4f8;
+
+    width: 100vw;
+    height: 100vh;
+
+
 }
